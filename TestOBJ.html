@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+	Module:			DecodeOBJ.html
+    
+    Description:	decode OBJ 3D file
+    				extending work of Devon Govett from bmp.js
+    
+	Reference:
+    	BMP.js		http://devongovett.github.com/bmp.js/
+        STL sample:	http://www.thingiverse.com/thing:9656  (I think?)
+        OBJ spec:	http://www.martinreddy.net/gfx/3d/OBJ.spec
+        samples:	http://people.sc.fsu.edu/~jburkardt/data/obj/obj.html
+        
+    Author(s):		Devon Govett provide a bmp decoding example.
+    				C.T. Yeung modify to decode OBJ.
+    
+    History:		
+    21Jan12			able to decode vertices and face data... but not rendering correctly... buggy
+    22Jan12			able to render monkey_vtn.obj.  decode only vertices and face info.	
+    				able to render the same capability as STL file decoder... next to look at texture, curves, etc.
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OBJ decoder</title>
+
+	<LINK REL=StyleSheet HREF="default.css" TYPE="text/css"> 
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+	<script src="OBJ.js"></script>
+    <script>
+		$(document).ready(function() {
+			var canvas = document.getElementById("myCanvas");
+			var context = canvas.getContext("2d");
+			var rX = 180;
+			var rY = 0;
+			var rZ = 0;
+			var STEP = 10;
+			var instance;
+			
+			loadOBJ();
+			
+			$("#slider").change(function() {
+				if(null!=instance)
+					update();
+			});
+			
+			// rotation controls
+			$("#imgLeft").click(function() {
+			
+				rY -= STEP;
+				if(rY<0)
+					rY = 360+rY;
+				
+				$("#ypos").html("Rotate Y: "+rY);
+				if(null==instance)
+					loadOBJ();
+				else
+					update();
+			});
+			
+			$("#imgRight").click(function() {
+				
+				rY += STEP;
+				if(rY>360)
+					rY -= 360;
+				
+				$("#ypos").html("Rotate Y: "+rY);
+				if(null==instance)
+					loadOBJ();
+				else
+					update();
+			});
+			
+			$("#combo").change(function() {
+				loadOBJ();
+			});
+			
+			function loadOBJ() {
+				var url = "asset/" + $("#combo").val();
+				OBJ.load(url, render);
+			}
+			
+			function render(obj) {
+				instance = obj;
+				update();
+			}
+			
+			function update() {	
+				var mag = $("#slider").val();
+				context.clearRect(0,0,canvas.width, canvas.height);
+				context = canvas.getContext('2d');
+				context.strokeStyle = 'black';
+				var numTriangles = 0;
+				var numTriangles = instance.categorize();
+				instance.drawWireFrame(context, canvas.width, canvas.height, mag,rX, rY, rZ);
+				$("#faceCount").html("Face count: " + numTriangles);
+			}
+			
+			setInterval(function() {
+				
+				    rX += 2;
+				    if(rX>360)
+					    rX -= 360;
+				    
+				    $("#xpos").html("Rotate X: "+rX);
+				    if(null==instance)
+					    loadOBJ();
+				    else
+					    update();
+				
+			}, 100);
+
+		});
+    </script>
+</head>
+
+<body style="position:relative">
+<div id="divCanvas">
+    <canvas id="myCanvas" width="400" height="400">
+        HTML5 canvas failed to load.
+    </canvas>
+</div>
+
+<div id="divLeft">
+	<img id="imgLeft" class="img" src="asset/arrowLeft.png"
+    onMouseOver="src='asset/arrowLeftOver.png'"
+    onMouseOut="src='asset/arrowLeft.png'"/>
+</div>
+
+<div id="divRight">
+	<img id="imgRight" class="img" src="asset/arrowRight.png"
+    onMouseOver="src='asset/arrowRightOver.png'"
+    onMouseOut="src='asset/arrowRight.png'"/>
+</div>
+
+<div id="divControls">
+    <p> Javascript-OBJ loader<br>
+    <br>
+    Reference: <br>
+    (1)3D Computer Graphics - 3rd Edition by Alan Watt, pg. 5<br>
+    (2)<a href="http://en.wikipedia.org/wiki/Wavefront_.obj_file">OBJ specification</a><br>
+    (3)<a href="http://devongovett.github.com/bmp.js/">Devon Govett's bmp.js</a><br>
+    (4)<a href="http://people.sc.fsu.edu/~jburkardt/data/obj/obj.html">sample models</a><br>
+
+    <br>
+    Controls:<br>
+    (1) Magnification (slider range: 0 - 200 in Chrome).<br>
+    (2) Click on an arrow to rotate 10 degrees increment.<br><br>
+    </p>
+	<p id="faceCount"> Face count: </p>
+    <select id="combo">
+		<option value="shuttle.obj">shuttle</option>
+      	<option value="lamp.obj">lamp</option>
+      	<option value="monkey_vtn.obj">monkey</option>	
+    </select> 
+    <p id="xpos"> Rotate X: </p>
+    <p id="ypos"> Rotate Y: </p>
+    
+	Magnification: <input id="slider" type="range" value=15  min="1" max="200" step="10" /><br>
+    
+    <br>
+</div>
+
+</body>
+</html>
