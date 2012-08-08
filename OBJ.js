@@ -48,214 +48,85 @@
 			var xhr;
 			xhr = new XMLHttpRequest;
 			xhr.open("GET", url, true);
-			xhr.responseType = "arraybuffer";
+			xhr.responseType = "text";
 			xhr.onload = __bind(function() {
-				var data = new Uint8Array(xhr.response || xhr.mozResponseArrayBuffer);
+				var data = (xhr.responseText);
 				return callback(new OBJ(data));
 			}, this);
 			return xhr.send(null);
 		};
 		
 		function OBJ(data) {
-			this.NUM_VERTEX = 118;
-			this.NUM_FACE = 102;
-		
-			this.data = data;
-			this.list_v = new Array();
-			this.list_f = new Array();
+		  this.data = data.split('\n');
+	
+		  this.list_v = new Array();
+		  this.list_f = new Array();
 		}
 		
-		// return true/false for finding/loading vertex
-		OBJ.prototype.readVertex = function(index) {
-			var VERTEX_TYPE_LEN = 2;
-			var sttPos = this.list_v[index];
-			var endPos = this.findEndPos(sttPos);		// return EOF pos if not found
-			var vString = this.bin2String(sttPos+VERTEX_TYPE_LEN, endPos);
-			var list = vString.split(" ");
-			
-			if(list.length!=3&&list.length!=4)
-				return null;							// invalid vertex
-				
-			var vertex = new Array();
-			for(var i=0; i<list.length; i++) 
-				vertex.push(Number(list[i]));
-				
-			return vertex;
+		OBJ.prototype.decode = function() {
+		  this.listVertex = [];
+		  this.list_vt = [];
+		  this.list_vn = [];
+		  this.listFace = [];
+		  this.list_s = [];
+		  
+		  // parse entire file info.
+		  for( var i=0; i<this.data.length; i++) 
+		    this.parseLine(i);
+					  
+		  return this.listFace.length;
 		};
 		
-		OBJ.prototype.readFace = function(index) {
-			var FACE_TYPE_LEN = 2;
-			var sttPos = this.list_f[index];
-			var endPos = this.findEndPos(sttPos);
-			var vString = this.bin2String(sttPos+FACE_TYPE_LEN, endPos);
-			var face = vString.split(" ");
-			return face;
-		};
-
-		OBJ.prototype.bin2String = function(sttPos, endPos) {
-			var buf="";
-			for(var i=sttPos; i<endPos; i++) {
-				var char = this.data[i].toString();
-				buf += String.fromCharCode(char);
-			}
-			return buf;
-		};
-		
-		// return upon first non number, non dot, not space
-		OBJ.prototype.findEndPos = function(stt) {
-			var i = stt;
-			while(i<(this.data.length-1)) {
-				// seek linefeed
-				if(this.data[i]==10)
-					return i;
-				i++;
-			}			
-			return this.data.length-1;
-		};
-		
-		OBJ.prototype.getVertexIndex = function(str) {
-			var pos = str.indexOf("/");
-			var numStr = str;
-			
-			if(pos>0)
-				numStr = str.substr(0, pos);
-			
-			var num = Number(numStr);
-			return num;
-		}
-		
-		OBJ.prototype.drawTriangles = function(face,
-							context,		// [in] canvas context 
-							w, 			// [in] canvas width
-							h, 			// [in] canvas height
-							mag,			// [in] magnification
-							rX,			// [in] amount of rotation X
-							rY,			// [in] amount of rotation Y
-							rZ){			// [in] amount of rotation Z
-			var offX = w/2;
-			var offY = h/2
-			context.beginPath();
-			
-			// convert rotation from degrees to radian
-			var radX = PI / 180.0 * rX;
-			var radY = PI / 180.0 * rY;
-			var radZ = PI / 180.0 * rZ;	
-						
-			var vtx0 = [0,0,0];
-			var vtx1;
-			if(face.length<3)										// must be at least a triangle
-				return false;
-			
-			// draw 
-			for(j=0; j<face.length; j++) {  
-				// retrieve vertices
-				var vIndex = this.getVertexIndex(face[j])-1;
-				if(vIndex>=this.list_v.length||vIndex<0)
-					return false;
-				
-				// retrieve vertex
-				var vtx1 = this.readVertex(vIndex);
-			
-				//vtx1[0] = vtx1[0];
-				var y = vtx1[1];
-				var z = vtx1[2];
-				vtx1[1] = Math.cos(radX)*y-Math.sin(radX)*z;
-				vtx1[2] = Math.sin(radX)*y+Math.cos(radX)*z
-				
-				var x = vtx1[0];
-				z = vtx1[2];
-				vtx1[0] = Math.cos(radY)*x+Math.sin(radY)*z;
-				//vtx1[1] = vtx1[1];
-				vtx1[2] = -Math.sin(radY)*x+Math.cos(radY)*z;
-				
-				// draw 2 lengths of a triangle
-				if(j==0) {
-					context.moveTo(vtx1[0]*mag+ offX, 
-						       vtx1[1]*mag+ offY);				// move to 1st triangle corner
-					vtx0[0] = vtx1[0];
-					vtx0[1] = vtx1[1];
-					vtx0[2] = vtx1[2];
-				}
-				else 
-					context.lineTo(vtx1[0]*mag+ offX, 
-						       vtx1[1]*mag+ offY);				// render only (x,y)
-			} 
-			// complete triangle
-			context.lineTo(vtx0[0]*mag+ offX, 
-				       vtx0[1]*mag+ offY);						// complete triangle
-			
-			// render on canvase
-			context.stroke();
-			context.closePath();
-			return true;
-		};
-		
-		OBJ.prototype.getLineType = function(sttPos, endPos) {
-			var str = "";
-			for(var i=sttPos; i<endPos; i++) {
-				var char = String.fromCharCode(this.data[i]);	
-				if(char==' ')
-					return str;
-				else
-					str += char;
-			}
-		};
-		
-		OBJ.prototype.categorize = function() {
-			this.pos = 0;								// begin of a line
-			this.list_v = new Array();
-			this.list_vt = new Array();
-			this.list_vn = new Array();
-			this.list_f = new Array();
-			this.list_s = new Array();
-			// parse entire file info.
-			while(this.pos < this.data.length-1) {
-				var endPos = this.findEndPos(this.pos);
-				var type = this.getLineType(this.pos, endPos);
-				
-				switch(type) {
-					case "v":
-					this.list_v.push(this.pos);
-					break;
-					
-					case "vt":
-					this.list_vt.push(this.pos);
-					break;
-					
-					case "vn":
-					this.list_vn.push(this.pos);
-					break;
-					
-					case "f":
-					this.list_f.push(this.pos);
-					break;
-					
-					case "s":
-					this.list_s.push(this.pos);
-					break;
-					
-					default:
-				}
-				this.pos = ++endPos;
-			}			
-			return this.list_f.length;
-		};
-		
-		OBJ.prototype.drawWireFrame = function(context,		// [in] canvas context 
-											   w, 			// [in] canvas width
-											   h, 			// [in] canvas height
-											   mag,			// [in] magnification
-											   rX,
-											   rY,
-											   rZ) {
-			this.pos = 0;
-			for(var i=0; i<this.list_f.length; i++) {
-				var face = this.readFace(i);
-				
-				if(!this.drawTriangles(face, context, w, h, mag, rX, rY, rZ))
-					return -1;
-			}
-			return this.list_f.length;
+		OBJ.prototype.parseLine = function(i) {
+		  var list = this.data[i].replace("\r", "");
+		  list = list.split(" ");
+		  var type = list[0];
+		  
+		  switch(type){
+		    case "v":
+		      var v = [	parseFloat(list[1]),
+				parseFloat(list[2]),
+				parseFloat(list[3])];
+		      if(list.length==5)
+			v.push(parseFloat(list[4]));
+		      this.listVertex.push(v);
+		    break;
+		    
+		    case "vt":
+		      var vt = [parseFloat(list[1]),
+				parseFloat(list[2]),
+				parseFloat(list[3])];
+		      this.list_vt.push(vt);
+		    break;
+		    
+		    case "vn":
+		      var vn = [parseFloat(list[1]),
+				parseFloat(list[2]),
+				parseFloat(list[3])];
+		    this.list_vn.push(vn);
+		    break;
+		  
+		    case "vp":
+		      var vp = [parseFloat(list[1]),
+				parseFloat(list[2])];
+		      if(list.length==4)
+			v.push(parseFloat(list[3]));
+		      this.list_vp.push(vp);
+		    break;
+		    
+		    case "f":
+		      var face = [list.length];
+		      for(var j=1; j<list.length; j++)
+			face.push(parseInt(list[j])-1);
+		    this.listFace.push(face);
+		    break;
+		    
+		    case "s":
+		    this.list_s.push(list);
+		    break;
+		    
+		    default:
+		  }			
 		};
 		
 		return OBJ;
