@@ -20,3 +20,20 @@ button {
     top: 10px;
     left: 430px;
 }
+
+.divBrowse {
+    position: relative;
+    float: left;
+    display: block;
+}
+
+#combo {
+    position: relative;
+    float: left;
+    display: block;
+    margin-top: 10px;
+}
+
+#files {
+    width: 300px;
+}

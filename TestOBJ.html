@@ -26,95 +26,101 @@
 
 	<LINK REL=StyleSheet HREF="default.css" TYPE="text/css"> 
 	    <script src="http://code.jquery.com/jquery-latest.js"></script>
-	<script src="Renderer.js"></script>
+	
 	<script src="OBJ.js"></script>
+	<script src="Renderer.js"></script>
+	<script src="OBJLoader.js"></script>
+	
     <script>
-		$(document).ready(function() {
-			var canvas = document.getElementById("myCanvas");
-			var context = canvas.getContext("2d");
-			var rX = 180;
-			var rY = 0;
-			var rZ = 0;
-			var STEP = 10;
-			var instance;
-			var numTriangles;
-			var renderer = new Renderer(canvas.width, canvas.height, context);
-			
+    $(document).ready(function() {
+	var canvas = document.getElementById("myCanvas");
+	var context = canvas.getContext("2d");
+	var rX = 180;
+	var rY = 0;
+	var rZ = 0;
+	var STEP = 10;
+	var instance;
+	var numTriangles;
+	var objLoader = new OBJLoader();
+	var renderer = new Renderer(canvas.width, canvas.height, context);
+	$("#files").bind('change', localOBJ);
+	
+	loadOBJ();
+	
+	$("#slider").change(function() {
+		if(null!=instance)
+			update();
+	});
+	
+	// rotation controls
+	$("#imgLeft").click(function() {
+	
+		rY -= STEP;
+		if(rY<0)
+		    rY = 360+rY;
+		
+		$("#ypos").html("Rotate Y: "+rY);
+		if(null==instance)
+		    loadOBJ();
+		else
+		    update();
+	});
+	
+	$("#imgRight").click(function() {
+		
+		rY += STEP;
+		if(rY>360)
+			rY -= 360;
+		
+		$("#ypos").html("Rotate Y: "+rY);
+		if(null==instance)
 			loadOBJ();
-			
-			$("#slider").change(function() {
-				if(null!=instance)
-					update();
-			});
-			
-			// rotation controls
-			$("#imgLeft").click(function() {
-			
-				rY -= STEP;
-				if(rY<0)
-					rY = 360+rY;
-				
-				$("#ypos").html("Rotate Y: "+rY);
-				if(null==instance)
-					loadOBJ();
-				else
-					update();
-			});
-			
-			$("#imgRight").click(function() {
-				
-				rY += STEP;
-				if(rY>360)
-					rY -= 360;
-				
-				$("#ypos").html("Rotate Y: "+rY);
-				if(null==instance)
-					loadOBJ();
-				else
-					update();
-			});
-			
-			$("#combo").change(function() {
-				loadOBJ();
-			});
-			
-			function loadOBJ() {
-				var url = "asset/" + $("#combo").val();
-				OBJ.load(url, render);
-			}
-			
-			function render(obj) {
-				instance = obj;
-				update();
-			}
-			
-			function update() {	
-				var mag = $("#slider").val();
-				context.clearRect(0,0,canvas.width, canvas.height);
-				context = canvas.getContext('2d');
-				context.strokeStyle = 'black';
-				var numTriangles = 0;
-				var numTriangles = instance.decode();
-				renderer.drawWireFrame(instance, mag, rX, rY, rZ);
-				//instance.drawWireFrame(context, canvas.width, canvas.height, mag,rX, rY, rZ);
-				$("#faceCount").html("Face count: " + numTriangles);
-			}
-			
-			setInterval(function() {
-				
-				    rX += 2;
-				    if(rX>360)
-					    rX -= 360;
-				    
-				    $("#xpos").html("Rotate X: "+rX);
-				    if(null==instance)
-					    loadOBJ();
-				    else
-					    update();
-				
-			}, 100);
-
-		});
+		else
+			update();
+	});
+	
+	$("#combo").change(function() {
+		loadOBJ();
+	});
+	
+	function loadOBJ() {
+	    var url = "asset/" + $("#combo").val();
+	    objLoader.load(url, render);
+	}
+	
+	function localOBJ(e) {
+	    objLoader.local(e, render);
+	}
+	
+	function render(obj) {
+		instance = obj;
+		update();
+	}
+	
+	function update() {	
+		var mag = $("#slider").val();
+		context.clearRect(0,0,canvas.width, canvas.height);
+		context = canvas.getContext('2d');
+		context.strokeStyle = 'black';
+		var numTriangles = 0;
+		var numTriangles = instance.decode();
+		renderer.drawWireFrame(instance, mag, rX, rY, rZ);
+		$("#faceCount").html("Face count: " + numTriangles);
+	}
+	
+	setInterval(function() {
+		
+		    rX += 2;
+		    if(rX>360)
+			    rX -= 360;
+		    
+		    $("#xpos").html("Rotate X: "+rX);
+		    if(null==instance)
+			loadOBJ();
+		    else
+			update();		
+	}, 100);
+    });
     </script>
 </head>
 
@@ -138,7 +144,7 @@
 </div>
 
 <div id="divControls">
-    <p> Javascript-OBJ loader<br>
+    <p> OBJ (ASCII) loader<br>
     <br>
     Reference: <br>
     (1)3D Computer Graphics - 3rd Edition by Alan Watt, pg. 5<br>
@@ -152,11 +158,18 @@
     (2) Click on an arrow to rotate 10 degrees increment.<br><br>
     </p>
 	<p id="faceCount"> Face count: </p>
+	
+    <div class="divBrowse">
+	<input type="file" id="files" name="files[]" multiple />
+	<output id="list"></output>
+    </div>
+    <div style="clear:both;"></div>
     <select id="combo">
 		<option value="shuttle.obj">shuttle</option>
       	<option value="lamp.obj">lamp</option>
       	<option value="monkey_vtn.obj">monkey</option>	
-    </select> 
+    </select>
+    <div style="clear:both;"></div>
     <p id="xpos"> Rotate X: </p>
     <p id="ypos"> Rotate Y: </p>
     
